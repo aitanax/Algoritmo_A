@@ -92,14 +92,13 @@ def guardar_soluciones(soluciones, path_salida, filas, columnas):
         writer = csv.writer(file)
 
         writer.writerow(["N. Sol:", len(soluciones)])
-        writer.writerow([ ])
 
         if len(soluciones) > 2:
             soluciones = random.sample(soluciones, 3)
         
         for index, solucion in enumerate(soluciones):
 
-            writer.writerow([f"Solución {index + 1}"])
+            writer.writerow([f"Sol: {index + 1}"])
 
             parking = [['-'] * columnas for i in range(filas)]
 
@@ -110,8 +109,8 @@ def guardar_soluciones(soluciones, path_salida, filas, columnas):
                     parking[plaza[0]-1][plaza[1]-1] = f"{vehiculo}-{info_vehiculo[1]}-{tipo_vehiculo}"
 
             for fila in parking:
-                writer.writerow(fila)
-            
+             writer.writerow(fila)
+       
             if index < len(soluciones) - 1:
                 writer.writerow([ ])
 
