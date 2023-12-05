@@ -45,7 +45,7 @@ def parse_map(map_str):
         'Localizacion inicio': parking_location
     }
 
-# Ejemplo de uso
+
 map_str = './ASTAR-tests/mapa.csv'
 
 map_info = parse_map(map_str)
