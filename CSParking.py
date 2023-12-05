@@ -47,3 +47,39 @@ def restriccion_maniobrabilidad(v1, v2, v3):
                     return False
 
         return True
+
+# -------------------------------- FUNCIÓN RESOLUCIÓN ---------------------------------
+
+def resolver_problema(filas, columnas, plazas_conexion, vehiculos):
+    problem = Problem()
+    
+    parking = [(i, j) for i in range(1, filas + 1) for j in range(1, columnas + 1)]
+
+    for vehiculo in vehiculos:
+        problem.addVariable(vehiculo[0], parking)
+    problem.addConstraint(AllDifferentConstraint())
+    for vehiculo in vehiculos:
+        id, tipo, congelar = vehiculo[0], vehiculo[1], vehiculo[2]
+
+        if congelar:
+            problem.addConstraint(InSetConstraint(plazas_conexion), [id])
+
+        # Restricción para TSU que no puede tener TNU por delante 
+        for vehiculo2 in vehiculos:
+            vehiculo2_id, tipo2, _ = vehiculo2
+            if tipo == 'TSU'  and  tipo2 == 'TNU':
+                problem.addConstraint(restriccion_aparcado_por_delante, (id, vehiculo2_id))
+
+            # Restricción de maniobrabilidad
+            # Verifica que las plazas a la izquierda y a la derecha estén libres
+            for vehiculo3 in vehiculos:
+                vehiculo3_id = vehiculo3[0]
+            
+                problem.addConstraint(restriccion_maniobrabilidad, (id, vehiculo2_id, vehiculo3_id))
+                
+    problem.addConstraint(AllDifferentConstraint())
+
+    # Obtener las soluciones
+    soluciones = problem.getSolutions()
+
+    return soluciones
