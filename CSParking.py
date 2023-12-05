@@ -5,6 +5,8 @@ import random
 # ------------------------------ FUNCIÓN PARA PROCESAR EL ARCHIVO DE ENTRADA ---------------------------------
 
 def procesar_archivo(path):
+    """ Función implementada para procesar un fichero de entrada.
+    """
 
     with open(path, 'r') as f:
         lines = f.readlines()
@@ -26,8 +28,10 @@ def procesar_archivo(path):
 # ------------------------------ FUNCIÓN PARA RESTRICCIÓN 4: TSU>TNU ---------------------------------
 
 def restriccion_aparcado_por_delante(v_tsu, v_tnu):
-    # Un TSU no puede tener aparcado por delante, en su misma fila, a ningún otro vehículo excepto si es también de tipo TSU
-    return v_tsu[0] != v_tnu[0] or v_tsu[1] >= v_tnu[1]  # Se cambia >= por <=
+    """ Funcion para la restricción 4. Controla la colocacion de los TNU y TSU respecto de un TSU.
+        Un TSU no puede tener aparcado por delante, en su misma fila, a ningún otro vehículo excepto si es también de tipo TSU
+    """
+    return v_tsu[0] != v_tnu[0] or v_tsu[1] >= v_tnu[1]
 
 # ------------------------------ FUNCIÓN PARA RESTRICCIÓN 5: MANIOBRABILIDAD ---------------------------------
 def restriccion_maniobrabilidad(v1, v2, v3, ):
@@ -87,7 +91,7 @@ def resolver_problema(filas, columnas, plazas_conexion, vehiculos):
 # ------------------------------ FUNCIÓN PARA VOLCAR EN EL ARCHIVO DE SALIDA ---------------------------------
 
 
-def guardar_soluciones(soluciones, path_salida, filas, columnas):
+def imprimir_archivo(soluciones, path_salida, filas, columnas):
     with open(path_salida, 'w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
 
@@ -135,7 +139,8 @@ if __name__ == "__main__":
 
         random.shuffle(soluciones)
         path_salida = path_parking.split('.')[0] + '.csv'
-        guardar_soluciones(soluciones, path_salida, filas, columnas)
+        imprimir_archivo(soluciones, path_salida, filas, columnas)
         print(f"Soluciones guardadas en {path_salida}")
+        
     else:
         print("No se encontraron soluciones.")
