@@ -30,23 +30,26 @@ def restriccion_aparcado_por_delante(v_tsu, v_tnu):
     return v_tsu[0] != v_tnu[0] or v_tsu[1] >= v_tnu[1]  # Se cambia >= por <=
 
 # ------------------------------ FUNCIÓN PARA RESTRICCIÓN 5: MANIOBRABILIDAD ---------------------------------
-def restriccion_maniobrabilidad(v1, v2, v3):
-        
-        # Condicion tres vehiculos seguidos:
-        if abs(v1[0] - v2[0]) == 1 and abs(v1[0] - v3[0]) == 1 and v1[1] == v2[1] == v3[1]:
-                return False
-        # Condicion fila 1:
-        if v1[0] == 1:  
-                # Derecha
-                if (v1[0] + 1 == v2[0] and v1[1]==v2[1]) or (v1[0] + 1 == v3[0] and v1[1]==v3[1]):
-                    return False
-        # Condicion ultima fila:
-        if v1[0] == filas: 
-                # Izquierda
-                if (v1[0] - 1 == v2[0] and v1[1]==v2[1]) or (v1[0] - 1 == v3[0] and v1[1]==v3[1]):
-                    return False
+def restriccion_maniobrabilidad(v1, v2, v3, ):
+    """ Funcion para la restricción 5. Controla la maniobrabilidad de los coches, asegurando libertad de plaza
+    a izquierdas o derechas de un coche para su libre movimiento.
 
-        return True
+        -   Tenemos en cuenta que fila 1 y última fila son casos especiales dado que uno solo tiene fila debajo y
+            otro solo encima, respectivamente.
+    """
+    # Condicion para la primera fila
+    if v1[0] == 1 and ((v1[0] + 1 == v2[0] and v1[1] == v2[1]) or (v1[0] + 1 == v3[0] and v1[1] == v3[1])):
+        return False 
+
+    # Condicion para la última fila
+    if v1[0] == filas and ((v1[0] - 1 == v2[0] and v1[1] == v2[1]) or (v1[0] - 1 == v3[0] and v1[1] == v3[1])):
+        return False  
+
+    # Condicioón para el resto de filas
+    if v1[0] != 1 and v1[0] != filas and ((v1[0] + 1 == v2[0] and v1[1] == v2[1]) and (v1[0] - 1 == v3[0] and v1[1] == v3[1])):
+        return False  
+
+    return True
 
 # -------------------------------- FUNCIÓN RESOLUCIÓN ---------------------------------
 
@@ -64,14 +67,11 @@ def resolver_problema(filas, columnas, plazas_conexion, vehiculos):
         if congelar:
             problem.addConstraint(InSetConstraint(plazas_conexion), [id])
 
-        # Restricción para TSU que no puede tener TNU por delante 
         for vehiculo2 in vehiculos:
             vehiculo2_id, tipo2, _ = vehiculo2
             if tipo == 'TSU'  and  tipo2 == 'TNU':
                 problem.addConstraint(restriccion_aparcado_por_delante, (id, vehiculo2_id))
 
-            # Restricción de maniobrabilidad
-            # Verifica que las plazas a la izquierda y a la derecha estén libres
             for vehiculo3 in vehiculos:
                 vehiculo3_id = vehiculo3[0]
             
@@ -91,29 +91,27 @@ def guardar_soluciones(soluciones, path_salida, filas, columnas):
     with open(path_salida, 'w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
 
-        # Escribir el número de soluciones encontradas
         writer.writerow(["N. Sol:", len(soluciones)])
         writer.writerow([ ])
 
         if len(soluciones) > 2:
-            soluciones = random.sample(soluciones, 2)
+            soluciones = random.sample(soluciones, 3)
         
         for index, solucion in enumerate(soluciones):
-            # Escribe una línea indicando la solución actual
+
             writer.writerow([f"Solución {index + 1}"])
 
-            # Crear una matriz para representar el parking
             parking = [['-'] * columnas for i in range(filas)]
-            
-            # Rellenar la matriz con los vehículos de la solución
+
             for vehiculo, plaza in solucion.items():
-                parking[plaza[0]-1][plaza[1]-1] = vehiculo
-            
-            # Escribir la matriz en el archivo
+                info_vehiculo = next((v for v in vehiculos if v[0] == vehiculo), None)
+                if info_vehiculo:
+                    tipo_vehiculo = "C" if info_vehiculo[2] else "X"
+                    parking[plaza[0]-1][plaza[1]-1] = f"{vehiculo}-{info_vehiculo[1]}-{tipo_vehiculo}"
+
             for fila in parking:
                 writer.writerow(fila)
             
-            # Agregar una fila de espacio si no es la última solución
             if index < len(soluciones) - 1:
                 writer.writerow([ ])
 
@@ -126,7 +124,7 @@ if __name__ == "__main__":
 
     path_parking = sys.argv[1]
     filas, columnas, plazas_conexion, vehiculos = procesar_archivo(path_parking)
-    # Imprimir los valores obtenidos
+    
     print(f"Filas: {filas}")
     print(f"Columnas: {columnas}")
     print(f"Plazas de Conexión: {plazas_conexion}")
@@ -135,7 +133,7 @@ if __name__ == "__main__":
     soluciones = resolver_problema(filas, columnas, plazas_conexion, vehiculos)
 
     if soluciones:
-        # Barajar las soluciones para mostrar algunas de forma aleatoria
+
         random.shuffle(soluciones)
         path_salida = path_parking.split('.')[0] + '.csv'
         guardar_soluciones(soluciones, path_salida, filas, columnas)
