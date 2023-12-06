@@ -60,11 +60,20 @@ def parse_map(map_str):
         'Localizacion inicio': parking_location
     }
 
+# ----------------------- FUNCIONES -------------------------
+
+def restantes(cola_bus, cola_total) -> list:
+    """ Función para el cálculo de pacientes restantes por recoger """
+    if cola_bus is None:
+        return cola_total
+    return [paciente for paciente in cola_total if paciente not in cola_bus]
+
 # ----------------- DEFINIMOS CLASE ESTADO ----------------------
 class Estado():
-        
+
     def __init__(self, padre: object, cola_bus: list, cola_total: list, heuristica: int):
         """ Constructor de la clase nod """
+
         self.padre = padre
         self.cola_bus = cola_bus # necesitamos diferenciar contagiosos de no contagisos
         print(f'\nPacientes: {self.cola_bus}')
@@ -72,7 +81,7 @@ class Estado():
         print("Pacientes restantes:", self.cola_restante)
         self.energia = energia
         self.posicion_actual = posicion
-        # Calulamos los costes
+        # Calculamos los costes
         self.coste_g = coste(self.cola_bus)
         self.coste_h = select_heuristic(heuristica, self.cola_restante)
         self.coste_f = self.coste_g + self.coste_h  # f(n) = g(n) + h(n)
@@ -80,6 +89,25 @@ class Estado():
 
 
 
+def astar(estado_inicial, cola, heuristica):
+
+    """Función para implementar A*"""
+    # Para tomas las pruebas de redimiento
+    start_time = time.time()
+
+    #Lista abierta -> Estado incial
+    print("\n Tenemos en el estado inicial:", estado_inicial.cola_bus)
+    
+    # Lo de siempre, listas para nodos a expandir y nodos expandidos, y variable de llegada
+    # al estado meta.
+    open_list = []
+    closed_list = []
+    goal = False
+
+    # Estado incial -> Lista abierta
+    open_list.append(estado_inicial)
+
+    
 
 
 
@@ -105,13 +133,13 @@ def main():
     path_translados = str(comprobar_parametros()[0])
     heuristica = int(comprobar_parametros()[1])
     # 2
-    queue = parse_map(path_translados)
+    cola = parse_map(path_translados)
     print('\n········································')
     print('\nSE ESTÁ CREANDO EL ESTADO INICIAL...')
-    print(f'La cola es: {queue}')
+    print(f'La cola es: {cola}') # asegurarnos de si recibe el mapa, los datos o what
     print(f'La heurística elegída: {heuristica}')
-    estado_incial = Estado(None, [], queue, heuristica)
-    astar(estado_incial, queue, heuristica)
+    estado_incial = Estado(None, [], cola, heuristica)
+    astar(estado_incial, cola, heuristica)
 
 
 if __name__ == '__main__':
