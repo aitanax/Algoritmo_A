@@ -88,17 +88,17 @@ def generar_sucesores(estado, mapa, heuristica, coste_predeterminado: int = 1):
             cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n = None, None, None, None, None
             
             if valor_casilla == 'P':
-                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n = acciones_casilla_P(estado, coste_predeterminado=coste_predeterminado)
+                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n = sucesores_P(estado, coste_predeterminado=coste_predeterminado)
             elif valor_casilla == 'N':
-                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, valor_casilla = acciones_casilla_N(estado, "izquierda" if dx == 0 and dy == -1 else "derecha" if dx == 0 and dy == 1 else "arriba" if dx == -1 and dy == 0 else "abajo", valor_casilla, coste_predeterminado)
+                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, valor_casilla = sucesores_N(estado, "izquierda" if dx == 0 and dy == -1 else "derecha" if dx == 0 and dy == 1 else "arriba" if dx == -1 and dy == 0 else "abajo", valor_casilla, coste_predeterminado)
             elif valor_casilla == 'C':
-                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, valor_casilla = acciones_casilla_C(estado, "izquierda" if dx == 0 and dy == -1 else "derecha" if dx == 0 and dy == 1 else "arriba" if dx == -1 and dy == 0 else "abajo", valor_casilla, coste_predeterminado)
+                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, valor_casilla = sucesores_C(estado, "izquierda" if dx == 0 and dy == -1 else "derecha" if dx == 0 and dy == 1 else "arriba" if dx == -1 and dy == 0 else "abajo", valor_casilla, coste_predeterminado)
             elif valor_casilla == 'CC':
-                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n = acciones_casilla_CC(estado, coste_predeterminado)
+                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n = sucesores_CC(estado, coste_predeterminado)
             elif valor_casilla == 'CN':
-                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n = acciones_casilla_CN(estado, coste_predeterminado)
+                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n = sucesores_CN(estado, coste_predeterminado)
             elif isinstance(valor_casilla, int):
-                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n = acciones_casilla_numerica(estado, valor_casilla)
+                cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n = sucesores_enteros(estado, valor_casilla)
             
             if cambio_energia is not None and cambio_energia >= 0:
                 sucesor = Estado(estado, nueva_fila, nueva_columna, valor_casilla, cambio_energia, nuevo_paciente_n, nuevo_paciente_c, nuevo_asiento_n, nuevo_asiento_c, heuristica)
@@ -151,7 +151,7 @@ def parada_cn(estado):
         return True, False # Se puede descargar de plazas no contagiosas, pero no de plazas contagiosas
 
 
-def acciones_casilla_P(estado, max_energia: int = 50, coste_predeterminado: int = 1):
+def sucesores_P(estado, max_energia: int = 50, coste_predeterminado: int = 1):
     """ Función que se ejecuta cuando se genera un estado hijo con un parking en la casilla """
 
     cambio_energia, nuevo_paciente_n, nuevo_paciente_c, nuevo_asiento_n, nuevo_asiento_c = (
@@ -164,7 +164,7 @@ def acciones_casilla_P(estado, max_energia: int = 50, coste_predeterminado: int 
 
     return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n
 
-def acciones_casilla_N(estado, direccion_movimiento, valor_direccion, coste_predeterminado: int = 1) :
+def sucesores_N(estado, direccion_movimiento, valor_direccion, coste_predeterminado: int = 1) :
     """ Función que se ejecuta cuando se genera un estado hijo con un paciente no contagioso en la casilla,
     dada una dirección de movimiento """
 
@@ -201,7 +201,7 @@ def acciones_casilla_N(estado, direccion_movimiento, valor_direccion, coste_pred
             valor_direccion = 1
     return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, valor_direccion
 
-def acciones_casilla_C(estado, direccion_movimiento, valor_direccion, coste_predeterminado: int = 1) :
+def sucesores_C(estado, direccion_movimiento, valor_direccion, coste_predeterminado: int = 1) :
     """ Función que se ejecuta cuando se genera un estado hijo con un paciente contagioso en la casilla,
     dada una dirección de movimiento """
 
@@ -240,7 +240,7 @@ def acciones_casilla_C(estado, direccion_movimiento, valor_direccion, coste_pred
 
     return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, valor_direccion
 
-def acciones_casilla_CC(estado, coste_predeterminado: int = 1):
+def sucesores_CC(estado, coste_predeterminado: int = 1):
     """ Función que se ejecuta cuando se genera un estado hijo con un centro de atención de pacientes
     contagiosos en la casilla """
 
@@ -249,7 +249,7 @@ def acciones_casilla_CC(estado, coste_predeterminado: int = 1):
     nuevo_asiento_n, nuevo_asiento_c = estado.asientos_n.copy(), []
     return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n
 
-def acciones_casilla_CN(estado, coste_predeterminado: int = 1):
+def sucesores_CN(estado, coste_predeterminado: int = 1):
     """ Función que se ejecuta cuando se genera un estado hijo con un centro de atención de pacientes
     no contagiosos en la casilla """
 
@@ -263,7 +263,7 @@ def acciones_casilla_CN(estado, coste_predeterminado: int = 1):
 
     return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n
 
-def acciones_casilla_numerica(estado, coste: int = 1):
+def sucesores_enteros(estado, coste: int = 1):
     """ Función que se ejecuta cuando se genera un estado hijo con un número en la casilla """
 
     cambio_energia = estado.energia - coste
