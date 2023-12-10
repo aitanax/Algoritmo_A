@@ -98,11 +98,11 @@ def imprimir_archivo(soluciones, path_salida, filas, columnas):
         writer.writerow(["N. Sol:", len(soluciones)])
 
         if len(soluciones) > 2:
-            soluciones = random.sample(soluciones, 3)
+            soluciones = random.sample(soluciones, 5)
         
         for index, solucion in enumerate(soluciones):
 
-            writer.writerow([f"Sol: {index + 1}"])
+            writer.writerow([f"Solución aleatoria {index + 1}:"])
 
             parking = [['-'] * columnas for i in range(filas)]
 
@@ -121,12 +121,14 @@ def imprimir_archivo(soluciones, path_salida, filas, columnas):
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) != 2:
-        print("Uso: python CSPParking.py <path_parking>")
-        sys.exit(1)
+    def command_prompt():
+        """ Obtenemos el argumento (path) pasado por consola """
+        if len(sys.argv) < 2 or len(sys.argv) > 2:
+            print("Error: Se necesita un argumento (el path al test)")
+            sys.exit(1)
+        return f"{sys.argv[1]}"
 
-    path_parking = sys.argv[1]
-    filas, columnas, plazas_conexion, vehiculos = procesar_archivo(path_parking)
+    filas, columnas, plazas_conexion, vehiculos = procesar_archivo(command_prompt())
     
     print(f"Filas: {filas}")
     print(f"Columnas: {columnas}")
@@ -136,9 +138,8 @@ if __name__ == "__main__":
     soluciones = resolver_problema(filas, columnas, plazas_conexion, vehiculos)
 
     if soluciones:
-
         random.shuffle(soluciones)
-        path_salida = path_parking.split('.')[0] + '.csv'
+        path_salida = str(command_prompt()) + '.csv'
         imprimir_archivo(soluciones, path_salida, filas, columnas)
         print(f"Soluciones guardadas en {path_salida}")
         
