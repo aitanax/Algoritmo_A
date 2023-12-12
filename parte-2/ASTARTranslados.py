@@ -54,25 +54,85 @@ class Estado():
             return self.heuristica_2()
         elif heuristica == 3:
             return self.heuristica_3()
+        elif heuristica == 4:
+            return self.heuristica_4()
+        elif heuristica == 5:
+            return self.heuristica_5()
         raise ValueError("El número de la heurística no es válido, disponibles de la 1 a la 4")
         
-    def heuristica_1(self) -> int:
+    def heuristica_1(self) :
         """ Función que implementa la heurística 1: Dijkstra """
         return 0
 
-    def heuristica_2(self) -> int:
+    def heuristica_2(self):
         """ Función que implementa la heurística 1, heuristica con valor 1 en caso de que no queden pacientes por recoger
         y con valor 1 en caso de que si"""
         if not self.pacientes_recoger_n and not self.pacientes_recoger_c:
             return 0
         return 1
     
-    def heuristica_3(self) -> int:
+    def heuristica_3(self):
         """ Función que implementa la heurística 2, heuristica con valor 0 en caso de que no queden pacientes por recoger
         y con valor 'numero_pacientes' en caso de quedar pacientes por recoger"""
         if not self.pacientes_recoger_n and not self.pacientes_recoger_c:
             return 0
         return len(self.pacientes_recoger_n) + len(self.pacientes_recoger_c)
+    
+
+    def heuristica_4(self):
+        
+        pacientes = self.pacientes_recoger_n + self.pacientes_recoger_c
+
+        if not pacientes:
+            return abs(self.fila - self.parking[0]) + abs(self.columna - self.parking[1])
+
+        distancia_total = 0
+        paciente_actual = [self.fila, self.columna]
+
+        while pacientes:
+            paciente_mas_cercano = min(pacientes, key=lambda p: abs(p[0] - paciente_actual[0]) + abs(p[1] - paciente_actual[1]))
+            distancia_total += abs(paciente_actual[0] - paciente_mas_cercano[0]) + abs(paciente_actual[1] - paciente_mas_cercano[1])
+            paciente_actual = paciente_mas_cercano
+            pacientes.remove(paciente_actual)
+
+        distancia_total += abs(paciente_actual[0] - self.parking[0]) + abs(paciente_actual[1] - self.parking[1])
+        return distancia_total
+    
+    def heuristica_5(self) -> int:
+        """
+        Esta heurística ordena primero los pacientes no contagiosos y contagiosos según su distancia a la ambulancia.
+        Luego, itera sobre cada lista para calcular la distancia total teniendo en cuenta la distancia entre el último
+        paciente de una lista y el primer paciente de la siguiente. La función calcular_distancia simplemente calcula
+        la distancia de Manhattan entre dos puntos.
+        """
+        # Ordenar pacientes no contagiosos y contagiosos por distancia a la ambulancia
+        no_contagiosos_ordenados = sorted(self.pacientes_recoger_n, key=lambda p: self.calcular_distancia([self.fila, self.columna], p))
+        contagiosos_ordenados = sorted(self.pacientes_recoger_c, key=lambda p: self.calcular_distancia([self.fila, self.columna], p))
+
+        # Recoger pacientes no contagiosos
+        distancia_total = 0
+        paciente_actual = [self.fila, self.columna]
+        for paciente in no_contagiosos_ordenados:
+            distancia_total += self.calcular_distancia(paciente_actual, paciente)
+            paciente_actual = paciente
+
+        # Agregar distancia entre el último paciente no contagioso y el primer paciente contagioso
+        if contagiosos_ordenados:
+            distancia_total += self.calcular_distancia(paciente_actual, contagiosos_ordenados[0])
+
+        # Recoger pacientes contagiosos
+        for paciente in contagiosos_ordenados:
+            distancia_total += self.calcular_distancia(paciente_actual, paciente)
+            paciente_actual = paciente
+
+        # Agregar distancia entre el último paciente contagioso y el parking
+        distancia_total += self.calcular_distancia(paciente_actual, self.parking)
+
+        return distancia_total
+    
+    
+    def calcular_distancia(self, punto_a, punto_b):
+        return abs(punto_a[0] - punto_b[0]) + abs(punto_a[1] - punto_b[1])
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------
 # --------------------------------------- GENERAR SUCESORES -----------------------------------
