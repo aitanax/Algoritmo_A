@@ -1,7 +1,7 @@
 from constraint import Problem, AllDifferentConstraint, InSetConstraint
 import csv
 import random
-import time
+import sys
 
 # ------------------------------ FUNCIÓN PARA PROCESAR EL ARCHIVO DE ENTRADA ---------------------------------
 
@@ -29,18 +29,15 @@ def procesar_archivo(path):
 
 def restriccion_aparcado_por_delante(v_tsu, v_tnu):
     """ Funcion para la restricción 4. Controla la colocacion de los TNU y TSU respecto de un TSU.
-        Un TSU no puede tener aparcado por delante, en su misma fila, a ningún otro vehículo excepto si es también de tipo TSU
+    Asi pues, la definimos de forma que no se puede colocar un TNU delante de un TSU
     """
     return v_tsu[0] != v_tnu[0] or v_tsu[1] >= v_tnu[1]
 
 # ------------------------------ FUNCIÓN PARA RESTRICCIÓN 5: MANIOBRABILIDAD ---------------------------------
 
 def restriccion_maniobrabilidad(v1, v2, v3 ):
-    """ Funcion para la restricción 5. Controla la maniobrabilidad de los coches, asegurando libertad de plaza
-    a izquierdas o derechas de un coche para su libre movimiento.
-
-        -   Tenemos en cuenta que fila 1 y última fila son casos especiales dado que uno solo tiene fila debajo y
-            otro solo encima, respectivamente.
+    """ Funcion para la restricción 5. Controla la maniobrabilidad de los vehiculos, asegurando una plaza libre
+    a izquierdas o derechas de un vehiculo para una libre maniobrabilidad.
     """
     # Condicion para la primera fila
     if v1[0] == 1 and ((v1[0] + 1 == v2[0] and v1[1] == v2[1]) or (v1[0] + 1 == v3[0] and v1[1] == v3[1])):
@@ -50,7 +47,7 @@ def restriccion_maniobrabilidad(v1, v2, v3 ):
     if v1[0] == filas and ((v1[0] - 1 == v2[0] and v1[1] == v2[1]) or (v1[0] - 1 == v3[0] and v1[1] == v3[1])):
         return False  
 
-    # Condicioón para el resto de filas
+    # Condición para el resto de filas
     if v1[0] != 1 and v1[0] != filas and ((v1[0] + 1 == v2[0] and v1[1] == v2[1]) and (v1[0] - 1 == v3[0] and v1[1] == v3[1])):
         return False  
 
@@ -93,7 +90,7 @@ def resolver_problema(filas, columnas, plazas_conexion, vehiculos):
 
 def imprimir_archivo(soluciones, path_salida, filas, columnas):
     with open(path_salida, 'w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
+        writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC)
 
         writer.writerow(["N. Sol:", len(soluciones)])
 
@@ -102,7 +99,6 @@ def imprimir_archivo(soluciones, path_salida, filas, columnas):
         
         for index, solucion in enumerate(soluciones):
 
-            writer.writerow([f"Solución aleatoria {index + 1}:"])
 
             parking = [['-'] * columnas for i in range(filas)]
 
@@ -119,8 +115,7 @@ def imprimir_archivo(soluciones, path_salida, filas, columnas):
                 writer.writerow([ ])
 
 if __name__ == "__main__":
-    import sys
-    tiempo_inicio = time.time()
+
     def command_prompt():
         """ Obtenemos el argumento (path) pasado por consola """
         if len(sys.argv) < 2 or len(sys.argv) > 2:
@@ -130,10 +125,10 @@ if __name__ == "__main__":
 
     filas, columnas, plazas_conexion, vehiculos = procesar_archivo(command_prompt())
     
-    print(f"Filas: {filas}")
-    print(f"Columnas: {columnas}")
-    print(f"Plazas de Conexión: {plazas_conexion}")
-    print(f"Vehículos: {vehiculos}")
+    #print(f"Filas: {filas}")
+    #print(f"Columnas: {columnas}")
+    #print(f"Plazas de Conexión: {plazas_conexion}")
+    #print(f"Vehículos: {vehiculos}")
 
     soluciones = resolver_problema(filas, columnas, plazas_conexion, vehiculos)
 
@@ -146,5 +141,3 @@ if __name__ == "__main__":
     else:
         print("No se encontraron soluciones.")
 
-    tiempo_total = time.time()-tiempo_inicio
-    print(tiempo_total)
