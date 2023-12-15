@@ -3,7 +3,36 @@
 import sys
 import time
 import csv
+import math
 # -------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------ FUNCIÓN COMPROBACION DE LA HEURISTICA ----------------------------------------
+
+def comprobar_estado(estado):
+    """ Función que comprueba la validez de una heurística """
+    coste_ruta_f, coste_ruta_g, coste_ruta_h = [], [], []
+
+    i = True
+    while i:
+        coste_ruta_g.append(estado.coste_gx)
+        coste_ruta_h.append(estado.coste_hx)
+        coste_ruta_f.append(estado.coste_fx)
+        # print(estado.coste_g, estado.coste_h, estado.coste_f)
+        if estado.padre is None:
+            i = False
+        estado = estado.padre
+
+    # Si f(n) != g(n) + h(n) no es admisible
+    if round(sum(coste_ruta_f), 2) != round((sum(coste_ruta_g) + sum(coste_ruta_h)), 2):
+        return f"ERROR: suma de costes no es correcta\nRuta G: {coste_ruta_g}\nRuta H: {coste_ruta_h}"
+
+    # Si h(n) > h(n') no es admisible
+    for i in range(len(coste_ruta_h)-1):
+        if coste_ruta_h[i] > coste_ruta_h[i+1]:
+            return f"ERROR: heurística no es admisible\nRuta H: {coste_ruta_h}"
+    # Si h(n) > g(n), no es admisible, en caso de estar en el estado meta
+    
+    return "Heurística y costes admisibles"
+
 # ---------------------------------------------------------- LECTURA DE MAPA ----------------------------------------------------------
 def cargar_mapa_desde_csv(ruta_csv):
     """Función para procesar el mapa, me vuelve los valores '1', '2', etc. a enteros para poder trabajar con ellos."""
@@ -20,7 +49,7 @@ def cargar_mapa_desde_csv(ruta_csv):
 
 def write_statistics(heuristica, tiempo_total, coste_total, longitud_solucion, nodos_expandidos, path):
     """Función que escribe las estadísticas en un archivo de texto, de tipo '.stat' """
-    with open(path[:-6] + f'-{heuristica}' + '.stat', 'w', encoding='UTF8') as file:
+    with open(path[:-4] + f'-{heuristica}' + '.stat', 'w', encoding='UTF8') as file:
 
         #print("\nESTADÍSTICAS DE LA EJECUCIÓN:")
         file.write(f'Tiempo total: {tiempo_total}\n')
@@ -28,24 +57,24 @@ def write_statistics(heuristica, tiempo_total, coste_total, longitud_solucion, n
         file.write(f'Longitud del plan: {longitud_solucion}\n')
         file.write(f'Nodos expandidos: {nodos_expandidos}\n')
 
-        #print(f'Tiempo total: {tiempo_total}')
-        #print(f'Coste Total: {coste_total}')
-        #print(f'Longitud del plan: {longitud_solucion}')
-        #print(f'Nodos expandidos: {nodos_expandidos}')
+        print(f'Tiempo total: {tiempo_total}')
+        print(f'Coste Total: {coste_total}')
+        print(f'Longitud del plan: {longitud_solucion}')
+        print(f'Nodos expandidos: {nodos_expandidos}')
 
 def write_solution(heuristica, pasos_solucion, path):
     """Función que escribe los resultados en un archivo de texto, de tipo '.output' """
     # Abrimos el archivo de texto
-    with open(path[:-6] + f'-{heuristica}' + '.output', 'w', encoding='UTF8') as file:
+    with open(path[:-4] + f'-{heuristica}' + '.output', 'w', encoding='UTF8') as file:
         # Escribimos los pasos de la solución
         #print("\nPASOS DE LA SOLUCIÓN:")
         for paso in pasos_solucion:
             file.write(str(paso))
-        #print(pasos_solucion)
+        print(pasos_solucion)
 # -------------------------------------------------------------------------------------------------------------------------------------
 # ------------------------------------------------ FUNCION DE ORDENACIÓN DE LISTA EN LISTA --------------------------------------------
 
-def ordenar_bucket(lista_a, lista_b):
+def ordenar_lista(lista_a, lista_b):
     """
     Función que inserta una lista ordenada 'b' en otra lista ordenada 'a' de forma que la lista resultante siga ordenada
     """
@@ -98,10 +127,25 @@ class Estado():
         self.coste_fx = self.coste_gx + self.coste_hx
     
     def __str__(self):
-            return f"({self.fila + 1},{self.columna + 1}):{self.tipo}:{self.energia}"
+            return f"({self.fila + 1},{self.columna + 1}):{self.tipo}:{self.energia}: coste h: {self.coste_hx} : coste g{self.coste_gx}: coste f {self.coste_fx}"
 
     def __eq__(self, estado):
+        if not isinstance(estado, Estado):
+            return False
         return self.fila == estado.fila and self.columna == estado.columna and self.energia == estado.energia and self.pacientes_recoger_n == estado.pacientes_recoger_n and self.pacientes_recoger_c == estado.pacientes_recoger_c and self.asientos_n == estado.asientos_n and self.asientos_c == estado.asientos_c
+
+    def __hash__(self):
+        lista_pos_pacientes = []
+        for paciente in self.pacientes_recoger_c + self.pacientes_recoger_n:
+            lista_pos_pacientes.append(paciente[0])
+            lista_pos_pacientes.append(paciente[1])
+
+        lista_hash = [elemento for elemento in lista_pos_pacientes + self.asientos_c + self.asientos_n]
+        lista_hash.append(self.fila)
+        lista_hash.append(self.columna)
+        lista_hash.append(self.energia)
+        lista_hash = tuple(lista_hash)
+        return hash(lista_hash)
 
     def calculo_gx(self, padre: object):
         """ Función que calcula el coste G"""
@@ -118,77 +162,63 @@ class Estado():
             return self.heuristica_2()
         elif heuristica == 3:
             return self.heuristica_3()
-        raise ValueError("El número de la heurística no es válido, disponibles de la 1 a la 3")
+        elif heuristica == 4:
+            return self.heuristica_4()
+        raise ValueError("El número de la heurística no es válido, disponibles de la 1 a la 4")
         
     def heuristica_1(self) :
         """ Función que implementa la heurística 1: Dijkstra """
         return 0
    
     def heuristica_2(self):
-        """ Función que implementa la heurística 2, heuristica con valor 0 en caso de que no queden pacientes por recoger
-        y con valor 'numero_pacientes' en caso de quedar pacientes por recoger"""
         if not self.pacientes_recoger_n and not self.pacientes_recoger_c:
+            # No quedan pacientes por recoger, valor 0
             return 0
-        return len(self.pacientes_recoger_n) + len(self.pacientes_recoger_c)
-    
+        else:
+            # Quedan pacientes por recoger, valor igual al número de pacientes
+            return len(self.pacientes_recoger_n) + len(self.pacientes_recoger_c)
 
     def heuristica_3(self):
-        # Si no quedan pacientes por recoger, la heurística es la distancia de Manhattan entre la ambulancia y el parking
-        if not self.pacientes_recoger_n and not self.pacientes_recoger_c:
-            return self.calcular_distancia((self.fila, self.columna), self.parking)
+        pacientes_totales = self.pacientes_recoger_n + self.pacientes_recoger_c
         distancia_total = 0
-        # Si quedan pacientes no contagiosos por recoger
-        if self.pacientes_recoger_n:
-            pacientes_n_visitados = []
-            paciente_n_mas_cercano = (self.fila, self.columna)           
-            # Se repite el proceso hasta que no queden pacientes no contagiosos por visitar
-            for _ in range(len(self.pacientes_recoger_n)):
-                distancia_minima_n = float('inf')                
-                # Se elige el paciente no contagioso más cercano a la ambulancia
-                for paciente_n in self.pacientes_recoger_n:
-                    distancia = self.calcular_distancia((self.fila, self.columna), paciente_n)
-                    if distancia < distancia_minima_n:
-                        distancia_minima_n = distancia
-                        paciente_n_mas_cercano = paciente_n 
-                # Se añade a la lista de pacientes no contagiosos visitados
-                pacientes_n_visitados.append(paciente_n_mas_cercano)
-                distancia_total += distancia_minima_n
-            # Se calcula la distancia de Manhattan entre el último y el paciente contagioso más cercano
-            distancia_minima_c = float('inf')
-            paciente_c_mas_cercano = paciente_n_mas_cercano
-            # Se repite el proceso hasta que no queden pacientes contagiosos por visitar
-            for _ in range(len(self.pacientes_recoger_c)):
-                # Se elige el paciente contagioso más cercano al último paciente no contagioso visitado
-                for paciente_c in self.pacientes_recoger_c:
-                    distancia = self.calcular_distancia(paciente_n_mas_cercano, paciente_c)
-                    if distancia < distancia_minima_c:
-                        distancia_minima_c = distancia
-                        paciente_c_mas_cercano = paciente_c
-                # Se añade a la lista de pacientes contagiosos visitados
-                distancia_total += distancia_minima_c
-            # Se calcula la distancia de Manhattan entre el último paciente contagioso y el parking
-            distancia_total += self.calcular_distancia(paciente_c_mas_cercano, self.parking)
-        # Si no quedan pacientes no contagiosos por recoger
-        else:
-            paciente_c_mas_cercano = (self.fila, self.columna)
-            # Se repite el proceso hasta que no queden pacientes contagiosos por visitar
-            for _ in range(len(self.pacientes_recoger_c)):
-                distancia_minima_c = float('inf')
-                # Se elige el paciente contagioso más cercano a la ambulancia
-                for paciente_c in self.pacientes_recoger_c:
-                    distancia = self.calcular_distancia((self.fila, self.columna), paciente_c)
-                    if distancia < distancia_minima_c:
-                        distancia_minima_c = distancia
-                        paciente_c_mas_cercano = paciente_c
-                # Se añade a la lista de pacientes contagiosos visitados
-                distancia_total += distancia_minima_c
-            # Se calcula la distancia de Manhattan entre el último paciente contagioso y el parking
-            distancia_total += self.calcular_distancia(paciente_c_mas_cercano, self.parking)
 
-        return distancia_total - len(self.pacientes_recoger_c) * 0.5
+        while pacientes_totales:
+            paciente_actual = pacientes_totales.pop(0)
+            dist_min_otro_paciente = math.inf
+
+            for otro_paciente in pacientes_totales:
+                distancia = self.calcular_distancia(paciente_actual, otro_paciente)
+                if distancia < dist_min_otro_paciente:
+                    dist_min_otro_paciente = distancia
+
+            distancia_total += dist_min_otro_paciente if dist_min_otro_paciente != math.inf else 0
+
+        distancia_total += len(self.pacientes_recoger_n + self.pacientes_recoger_c)  # Vuelta al parking
+        return distancia_total
+
+    def heuristica_4(self):
+        """Heurística personalizada basada en la distancia mínima a todos los pacientes"""
+        dist_min_paciente = math.inf
+        distancia_total = 0
+        paciente_min_ubi = [self.fila, self.columna]
+        pacientes_totales = self.pacientes_recoger_n + self.pacientes_recoger_c
+
+        while pacientes_totales:
+            dist_min_paciente = math.inf
+            for paciente in pacientes_totales:
+                distancia = self.calcular_distancia(paciente_min_ubi, paciente)
+                if distancia < dist_min_paciente:
+                    dist_min_paciente = distancia
+                    paciente_min_ubi = paciente
+            pacientes_totales.remove(paciente_min_ubi)
+            distancia_total += distancia
+
+        distancia_total += 1 # Vuelta al parking
+        return distancia_total
 
     def calcular_distancia(self, punto_a, punto_b):
         return abs(punto_a[0] - punto_b[0]) + abs(punto_a[1] - punto_b[1])
+
 
 # -------------------------------------------------------------------------------------------------------------------------------------
 # ------------------------------------------------------- GENERAR SUCESORES -----------------------------------------------------------
@@ -235,55 +265,58 @@ def generar_sucesores(estado, mapa, heuristica, coste: int = 1):
 def recoger_tipo_n(estado, asientos_cte_n: int = 8, asientos_cte_c: int = 2):
     """ Un paciente no contagioso se recoge si hay plazas no contagiosas libres o si hay plazas contagiosas libres 
     y no hay ningún paciente contagioso en ellas """
-
-    asiento_disp_n = len(estado.asientos_n) < asientos_cte_n
-    asientos_disp_c = len(estado.asientos_c) < asientos_cte_c
-
-    if asiento_disp_n:
-        return True, False # Se puede recoger y se recoge en plazas no contagiosas
-    elif asientos_disp_c and not any(estado.asientos_c):
-        return True, True # Se puede recoger y se recoge en plazas contagiosas
-    else:
-        return False, False # No se puede recoger
+    if len(estado.asientos_n) < asientos_cte_n:
+        return True, False # Se puede recoger y se recoge en plazas no contagiosas: acc/asiento_c
+    if len(estado.asientos_c) < asientos_cte_c:
+        if True in estado.asientos_c:
+            return False, False #No se puede recoger
+    # Si no hay ningún paciente contagioso en las plazas contagiosas, se puede recoger
+    return True, True
 
 def recoger_tipo_c(estado, asientos_cte_c: int = 2):
     """ Un paciente contagioso se recoge si hay plazas contagiosas libres y no hay ningún paciente no contagioso en ellas.
     También NO debe haber ningún paciente no contagioso restante por recoger """
-
-    if estado.pacientes_recoger_n or estado.asientos_c.count(False) > asientos_cte_c:
+    # Comprobamos si quedan pacientes no contagiosos por recoger
+    if estado.pacientes_recoger_n:
         return False
-    return True
+    # Comprobamos si hay plazas contagiosas libres
+    if len(estado.asientos_c) < asientos_cte_c:
+        # Comprobamos si hay algún paciente no contagioso en las plazas contagiosas
+        if False in estado.asientos_c:    # Los pacientes no contagiosos tienen un valor False
+            return False
+    # Si no hay ningún paciente no contagioso en las plazas contagiosas, se puede recoger
+        return True
+    return False
 
 def parada_cn(estado):
-    pacientes_c_contagiosos = any(estado.asientos_c)  # True si hay pacientes contagiosos en plazas contagiosas
-    pacientes_n_ocupados = any(estado.asientos_n)  # True si hay pacientes no contagiosos en plazas no contagiosas
-
-    if pacientes_c_contagiosos:
-        return False, False # No se puede descargar de ninguna plaza
-    elif pacientes_n_ocupados:
-        return True, True # Se puede descargar de plazas no contagiosas y de plazas contagiosas
+     # Comprobamos si hay algún paciente contagioso en las plazas de pacientes contagiosos
+    if True in estado.asientos_c:     # Los pacientes contagiosos tienen un valor True
+        return False, False
+    # Comprobamos si hay pacientes no contagiosos en las plazas de pacientes no contagiosos
+    elif False in estado.asientos_n:
+        # Comprobamos si hay pacientes no contagiosos en las plazas de pacientes contagiosos
+        if False in estado.asientos_c:
+            return True, True
+        else:
+            return True, False
     else:
-        return True, False # Se puede descargar de plazas no contagiosas, pero no de plazas contagiosas
+        return False, False     # No hay pacientes no contagiosos en ninguna plaza
 
 def sucesores_P(estado, max_energia: int = 50, coste: int = 1):
     """ Función que se ejecuta cuando se genera un estado hijo con un parking en la casilla """
-
     cambio_energia, nuevo_paciente_n, nuevo_paciente_c, nuevo_asiento_n, nuevo_asiento_c = (
         max_energia,
         estado.pacientes_recoger_n.copy(),
         estado.pacientes_recoger_c.copy(),
         estado.asientos_n.copy(),
-        estado.asientos_c.copy()
-    )
+        estado.asientos_c.copy())
 
     return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n
 
-def sucesores_N(estado, operador, valor_direccion, coste: int = 1) :
+def sucesores_N(estado, operador, cambio_tipo, coste: int = 1) :
     """ Función que se ejecuta cuando se genera un estado hijo con un paciente no contagioso en la casilla,
     dada una dirección de movimiento """
-
     dx, dy = 0, 0
-
     if operador == "arriba":
         dx = -1
     elif operador == "abajo":
@@ -294,14 +327,12 @@ def sucesores_N(estado, operador, valor_direccion, coste: int = 1) :
         dy = 1
     else:
         raise ValueError("Operador no válido")
-
     cambio_energia = estado.energia - coste
     nuevo_paciente_c, nuevo_paciente_n = estado.pacientes_recoger_c.copy(), estado.pacientes_recoger_n.copy()
     nuevo_asiento_c, nuevo_asiento_n = estado.asientos_c.copy(), estado.asientos_n.copy()
 
     if [estado.fila + dx, estado.columna + dy] in estado.pacientes_recoger_n:
         accesible, en_plazas_c = recoger_tipo_n(estado)
-
         if accesible:
             nuevo_paciente_n = estado.pacientes_recoger_n.copy()
             nuevo_paciente_n.remove([estado.fila + dx, estado.columna + dy])
@@ -311,13 +342,12 @@ def sucesores_N(estado, operador, valor_direccion, coste: int = 1) :
             else:
                 nuevo_asiento_n.append(False)
         else:
-            valor_direccion = 1
-    return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, valor_direccion
+            cambio_tipo = 1
+    return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, cambio_tipo
 
-def sucesores_C(estado, operador, valor_direccion, coste: int = 1) :
+def sucesores_C(estado, operador, cambio_tipo, coste: int = 1) :
     """ Función que se ejecuta cuando se genera un estado hijo con un paciente contagioso en la casilla,
     dada una dirección de movimiento """
-
     dx, dy = 0, 0
 
     if operador == "arriba":
@@ -337,7 +367,6 @@ def sucesores_C(estado, operador, valor_direccion, coste: int = 1) :
 
     if [estado.fila + dx, estado.columna + dy] in estado.pacientes_recoger_c:
         accesible = recoger_tipo_c(estado)
-
         if accesible:
             nuevo_paciente_c = estado.pacientes_recoger_c.copy()
             nuevo_paciente_c.remove([estado.fila + dx, estado.columna + dy])
@@ -348,17 +377,18 @@ def sucesores_C(estado, operador, valor_direccion, coste: int = 1) :
 
     else:
         nuevo_paciente_c, nuevo_asiento_n, nuevo_asiento_c = estado.pacientes_recoger_c.copy(), estado.asientos_n.copy(), estado.asientos_c.copy()
-        valor_direccion = 1
+        cambio_tipo = 1
 
-    return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, valor_direccion
+    return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n, cambio_tipo
 
 def sucesores_CC(estado, coste: int = 1):
     """ Función que se ejecuta cuando se genera un estado hijo con un centro de atención de pacientes
     contagiosos en la casilla """
 
     cambio_energia = estado.energia - coste
-    nuevo_paciente_n, nuevo_paciente_c, nuevo_asiento_n = estado.pacientes_recoger_n.copy(), estado.pacientes_recoger_c.copy(), estado.asientos_n.copy()
-    nuevo_asiento_c =  []
+    nuevo_paciente_n, nuevo_paciente_c, nuevo_asiento_n, nuevo_asiento_c = estado.pacientes_recoger_n.copy(), estado.pacientes_recoger_c.copy(), estado.asientos_n.copy(), estado.asientos_c.copy()
+    if not False in nuevo_asiento_c:
+        nuevo_asiento_c=  []
     return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n
 
 def sucesores_CN(estado, coste: int = 1):
@@ -370,14 +400,16 @@ def sucesores_CN(estado, coste: int = 1):
     nuevo_asiento_n, nuevo_asiento_c = estado.asientos_n.copy(), estado.asientos_c.copy()
 
     # Se eliminan los pacientes no contagiosos de las listas de plazas según la disponibilidad
-    nuevo_asiento_n = [] if parada_cn(estado)[0] else nuevo_asiento_n
-    nuevo_asiento_c = [] if parada_cn(estado)[1] else nuevo_asiento_c
+    if parada_cn(estado)[0]:
+        nuevo_asiento_n = []
+
+    if parada_cn(estado)[1]:
+        nuevo_asiento_c = []
 
     return cambio_energia, nuevo_paciente_c, nuevo_paciente_n, nuevo_asiento_c, nuevo_asiento_n
 
 def sucesores_enteros(estado, coste: int = 1):
     """ Función que se ejecuta cuando se genera un estado hijo con un número en la casilla """
-
     cambio_energia = estado.energia - coste
     nuevo_paciente_n, nuevo_paciente_c = estado.pacientes_recoger_n.copy(), estado.pacientes_recoger_c.copy()
     nuevo_asiento_n, nuevo_asiento_c = estado.asientos_n.copy(), estado.asientos_c.copy()
@@ -392,25 +424,32 @@ def a_estrella(estado_inicial, mapa, heuristica):
     """
     iniciar_tiempo = time.time()
     open_list = [estado_inicial]  # Es una lista ordenada por coste_f de los estados a expandir
-    closed_list = []    # Es una lista de estados ya expandidos
+    closed_list = set()    # Es una lista de estados ya expandidos
     is_goal = False    # Indica si se ha expandido un estado is_goal
     solucion = []   # Lista de estados que forman la solución
+    early_stop = False
     while open_list and not is_goal:
         estado_actual = open_list.pop(0)
         while estado_actual in closed_list:
-            estado_actual = open_list.pop(0)
-
-        if (estado_actual.tipo == 'P' and not estado_actual.pacientes_recoger_c and not estado_actual.pacientes_recoger_n and 
-            not estado_actual.asientos_c and not estado_actual.asientos_n):
+            try :
+                estado_actual = open_list.pop(0)
+            except IndexError:
+                # La lista abierta está vacía
+                estado_actual = None
+                early_stop = True
+        # Si el estado actual es meta, terminamos
+        if (not early_stop and estado_actual.tipo == 'P' and not estado_actual.pacientes_recoger_n and
+            not estado_actual.pacientes_recoger_c and not estado_actual.asientos_n and not estado_actual.asientos_c):
             is_goal = True
-        
-        else:
-            closed_list.append(estado_actual)
+        elif not early_stop:
+            closed_list.add(estado_actual)
             sucesores = generar_sucesores(estado_actual, mapa, heuristica)
-            open_list = ordenar_bucket(open_list, sucesores)
+            open_list = ordenar_lista(open_list, sucesores)
 
     if is_goal:
         solucion.append(estado_actual)
+        print(comprobar_estado(estado_actual))
+
         tiempo_total = time.time() - iniciar_tiempo
         while estado_actual.padre:
             solucion.append(estado_actual.padre)
